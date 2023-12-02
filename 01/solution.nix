@@ -1,36 +1,16 @@
-{ pkgs, str }:
+{ pkgs, ... }:
 let
-  stripChars = str:
-    let
-      inherit pkgs;
-      isConvertibleToInt = string:
-        let r = builtins.tryEval (pkgs.lib.toInt string); in
-        r.success;
-    in
-      builtins.filter
-        (x: isConvertibleToInt x)
-        (pkgs.lib.lists.flatten
-          (builtins.split "([[:digit:]])" str));
+  splitIntoLines = string: builtins.filter (v: ! builtins.isList v) (builtins.split "\n" string);
 in
-if (builtins.length (stripChars str)) == 1 then
-  # return string toInt concatenated with itself
-  pkgs.lib.strings.toInt
-    (pkgs.lib.strings.concatStrings
-      (pkgs.lib.strings.replicate 2
-        (pkgs.lib.strings.concatStrings (stripChars str))))
-else
-  if (builtins.length (stripChars str)) == 2 then
-    # return string toInt unchanged
-    pkgs.lib.strings.toInt
-      (pkgs.lib.strings.concatStrings (stripChars str))
-  else
-    # return first and last element of list concatenated toInt
-    pkgs.lib.strings.toInt
-      (pkgs.lib.strings.concatStrings
-        (pkgs.lib.lists.flatten
-          [
-            (builtins.head (stripChars str))
-            (pkgs.lib.lists.last (stripChars str))
-          ]
-        )
-      )
+let
+  handleLine = line:
+    (import ./calibration-value-for-line.nix {
+      inherit pkgs;
+    }) line;
+
+  handleLines = lines: builtins.foldl' (x: y: x + (handleLine y)) 0 (splitIntoLines lines);
+  file = builtins.readFile ./test.txt;
+in
+{
+  result = handleLines file;
+}
