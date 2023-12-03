@@ -9,7 +9,14 @@ calcCalibrationLine x = do
   else if length x == 2 then read x
   else read (head x : [last x])
 
+calcCalibrationLines :: (a -> b) -> [b] -> [b]
+calcCalibrationLines f = map (\x -> x + calcCalibrationLine x)
+
+
+
 main :: IO ()
 main = do
-  string <- getLine
-  print (calcCalibrationLine (filter isNumber string))
+  path <- getLine
+  content <- readFile path
+  let listOfStrings = lines content
+  print (calcCalibrationLine (filter isNumber path))
